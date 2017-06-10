@@ -1,7 +1,7 @@
 {% extends 'layout.swig' %}
 
 {% block content %}
-<table style="width:100%">
+<table style="width:960px">
   <tr>
     <td><h1>{{ name }}</h1></th>
     <td><img border="0" src="{{qr}}"></th> 
