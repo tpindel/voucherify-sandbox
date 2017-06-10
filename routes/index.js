@@ -3,6 +3,7 @@ var router = express.Router();
 var leitz = require('leitzicon');
 var fs = require('fs');
 var webshot = require('webshot');
+var querystring = require('querystring');
 
 /* GET home page. */
 
@@ -11,10 +12,14 @@ router.get('/', function(req, res) {
 });
 
 router.get('/label', function(req, res) {
-	res.render('label', { name: 'Tomasz Pindel', uuid: "7bb1a7cb-de2d-4954-b624-1e9678569ee1", qr: "http://127.0.0.1:9000/img/qr.png" });
+	res.render('label', { name: req.query.name, uuid: req.query.uuid, qr_id: querystring.escape(req.query.qr_id) });
 });
 
-router.get('/print-label', function(req, res) {
+router.post('/print-label/:code', function(req, res) {
+	var voucher_code 	= req.params.code;
+	var customer_name 	= (req.body.customer || {}).name;
+	var qr_id 			= ((req.body.voucher || {}).qr || {}).id;
+
 	var options = {
 		shotSize: {
     		width: 1000,
@@ -22,7 +27,12 @@ router.get('/print-label', function(req, res) {
   		}
 	};
 
-	var renderStream = webshot('http://127.0.0.1:9000/label', options);
+	if (!voucher_code || !customer_name || !qr_id) {
+		console.error("[print-label] Input params undefined Voucher Code: %s Customer: %s QR: %s", voucher_code, customer_name, qr_id);
+		return res.status(400).send('Bad Request');
+	}
+
+	var renderStream = webshot('http://127.0.0.1:9000/label?' + "name=" + customer_name + "&uuid=" + voucher_code + "&qr_id=" + querystring.escape(qr_id), options);
 	var writeStream = fs.createWriteStream('file.png', {encoding: 'binary'});
 
 	renderStream.on('data', function(data) {
@@ -30,14 +40,13 @@ router.get('/print-label', function(req, res) {
 	});
 
 	renderStream.on('end', function() {
-		console.log('OK');
-		leitz.printPNG(__dirname + '/./../file.png', 'http://192.168.1.1:631/ipp/print', {}, function (err) {
+		leitz.printPNG(__dirname + '/./../file.png', 'http://192.168.1.35:631/ipp/print', {}, function (err) {
     		if(err) {
     			console.log(err);
-    			res.send('Error');
+    			return res.status(500).send(err);
     		} 
 
-    		res.send('Printed');
+    		res.status(200).send('Printed');
 		});
 	});
 	
