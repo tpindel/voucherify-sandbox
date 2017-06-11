@@ -12,7 +12,13 @@ router.get('/', function(req, res) {
 });
 
 router.get('/label', function(req, res) {
-	res.render('label', { name: req.query.name, uuid: req.query.uuid, qr_id: querystring.escape(req.query.qr_id) });
+	var qr_url = "/img/qr.png";
+	if (req.query.qr_id) {
+		qr_url = "https://dl.voucherify.io/api/v1/assets/qr/" + querystring.escape(req.query.qr_id);
+	}
+
+
+	res.render('label', { name: req.query.name, uuid: req.query.uuid, qr: qr_url });
 });
 
 router.post('/print-label/:code', function(req, res) {
